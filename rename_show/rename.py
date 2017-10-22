@@ -51,8 +51,8 @@ def get_user_decision(*, values, numbered, type_cast_f, allow_custom=True):
         return values[choice]
 
 
-def main(directory: str, show_name: str):
-    episodes = get_episodes(show_name, year=2009)
+def main(directory: str, show_name: str, year: int):
+    episodes = get_episodes(show_name, year=year)
 
     for path, directories, files in os.walk(directory):
         mkv_files = filter(lambda file: file.endswith(".mkv"), files)
