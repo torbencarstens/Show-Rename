@@ -92,8 +92,9 @@ def main(directory: str, show_name: str, year: int = None, file_ext: str = ".mkv
 
     print("Creating new episode names for {} files".format(file_ext))
     for path, _, files in os.walk(directory):
-        video_files = filter(lambda file: file.endswith(".video"), files)
+        video_files = filter(lambda file: file.endswith(file_ext), files)
         for video in video_files:
+            print("Find episode for {}".format(os.path.basename(video)))
             try:
                 season_nr, episode_nr = retrieve_season_episode_from_file(video, show_name)
             except IndexError:
