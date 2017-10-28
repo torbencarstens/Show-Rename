@@ -29,7 +29,7 @@ def get_show(show_name, year):
         print(
             "Multiple shows with <[name] {} | [year] {}> have been found. Please choose one from the following list: ".format(
                 show_name, year))
-        return get_user_decision(values=shows, allow_custom=False)
+        return get_user_decision(values=shows)
 
     raise ValueError("Show with <[name] {} | [year] {}> does not exist".format(show_name, year))
 
@@ -46,7 +46,7 @@ def retrieve_season_episode_from_file(filename, show_name) -> Tuple[int, int]:
     return int(season_nr), int(episode_nr)
 
 
-def get_user_decision(*, values, numbered=None, type_cast_f=None, allow_custom=True):
+def get_user_decision(*, values, numbered=None, type_cast_f=None, allow_custom=False):
     if not numbered:
         numbered = range(0, len(values))
         type_cast_f = int
@@ -63,11 +63,11 @@ def get_user_decision(*, values, numbered=None, type_cast_f=None, allow_custom=T
         choice = type_cast_f(input("Please enter your choice?\n"))
     except TypeError:
         print("Please enter a valid option")
-        return get_user_decision(values=values, numbered=numbered, type_cast_f=type_cast_f)
+        return get_user_decision(values=values, numbered=numbered, type_cast_f=type_cast_f, allow_custom=allow_custom)
 
     if not (choice in numbered or choice == custom_number):
         print("Please enter a valid option")
-        return get_user_decision(values=values, numbered=numbered, type_cast_f=type_cast_f)
+        return get_user_decision(values=values, numbered=numbered, type_cast_f=type_cast_f, allow_custom=allow_custom)
 
     if allow_custom and choice == custom_number:
         return input("Please put the new episode name:\n")
@@ -76,7 +76,7 @@ def get_user_decision(*, values, numbered=None, type_cast_f=None, allow_custom=T
 
 
 def main(directory: str, show_name: str, year: int = None, file_ext: str = ".mkv", season_prefix: str = "S",
-         episode_prefix: str = "E"):
+         episode_prefix: str = "E", confirm_renaming: bool = False):
     global imdb
 
     if not file_ext.startswith("."):
@@ -87,6 +87,8 @@ def main(directory: str, show_name: str, year: int = None, file_ext: str = ".mkv
     show: Dict[str, Any] = get_show(show_name, year)
     print("Retrieving episodes for {} from imdb".format(show_name))
     episodes = get_episodes(show['imdb_id'])
+
+    renaming_mapping = {}
 
     print("Renaming {} files in diretory".format(file_ext))
     for path, _, files in os.walk(directory):
@@ -121,6 +123,14 @@ def main(directory: str, show_name: str, year: int = None, file_ext: str = ".mkv
 
             new_name = "{}_{}{}_{}{}_{}.{}".format(show_name, season_prefix, season_nr, episode_prefix, episode_nr,
                                                    title, file_ext)
+
             new = os.path.join(path, new_name)
+            renaming_mapping[file] = new
             print("{} -> {}".format(os.path.basename(file), os.path.basename(new)))
-            os.rename(file, new)
+
+        if confirm_renaming:
+            print("Do you want to rename the previous episodes in {}:".format(path))
+            if get_user_decision(values=['Yes', 'No']) == 'No':
+                return None
+        for old, new in renaming_mapping.items():
+            os.rename(old, new)
