@@ -90,7 +90,7 @@ def main(directory: str, show_name: str, year: int = None, file_ext: str = ".mkv
 
     renaming_mapping = {}
 
-    print("Renaming {} files in diretory".format(file_ext))
+    print("Creating new episode names for {} files".format(file_ext))
     for path, _, files in os.walk(directory):
         video_files = filter(lambda file: file.endswith(".video"), files)
         for video in video_files:
@@ -132,5 +132,6 @@ def main(directory: str, show_name: str, year: int = None, file_ext: str = ".mkv
             print("Do you want to rename the previous episodes in {}:".format(path))
             if get_user_decision(values=['Yes', 'No']) == 'No':
                 return None
+        print("Renaming episodes")
         for old, new in renaming_mapping.items():
             os.rename(old, new)
