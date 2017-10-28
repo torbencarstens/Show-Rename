@@ -1,22 +1,42 @@
 import re
 import os
-from typing import Tuple
+from typing import Any, Dict, Tuple
 
 import colorama
 from imdbpie import Imdb
 
+imdb: Imdb = None
 
-def get_episodes(show_name, year):
-    imdb = Imdb()
+
+def get_show(show_name, year):
+    global imdb
+
     results = imdb.search_for_title(show_name)
+    if year:
+        results = filter(lambda result: result['year'] and int(result['year']) == year, results)
 
     results = list(
-        filter(lambda result: int(result['year']) == year,
-               filter(lambda result:
-                      result['title'] == show_name, results)))
+        filter(lambda result:
+               result['title'] == show_name, results))
 
-    ids = map(lambda res: res['imdb_id'], results)
-    episodes = imdb.get_episodes(ids.__next__())
+    if len(results) == 1:
+        return results[0]
+    elif len(results) > 1:
+        shows = map(lambda result: imdb.get_title_by_id(result['imdb_id']), results)
+        shows = list(
+            map(lambda show: {'title': show.title, 'year': show.year, 'plot_outline': show.plot_outline,
+                              'imdb_id': show.imdb_id}, shows))
+        print(
+            "Multiple shows with <[name] {} | [year] {}> have been found. Please choose one from the following list: ".format(
+                show_name, year))
+        return get_user_decision(values=shows, allow_custom=False)
+
+    raise ValueError("Show with <[name] {} | [year] {}> does not exist".format(show_name, year))
+
+
+def get_episodes(show_id):
+    global imdb
+    episodes = imdb.get_episodes(show_id)
 
     return episodes
 
@@ -26,17 +46,21 @@ def retrieve_season_episode_from_file(filename, show_name) -> Tuple[int, int]:
     return int(season_nr), int(episode_nr)
 
 
-def get_user_decision(*, values, numbered, type_cast_f, allow_custom=True):
+def get_user_decision(*, values, numbered=None, type_cast_f=None, allow_custom=True):
+    if not numbered:
+        numbered = range(0, len(values))
+        type_cast_f = int
+
     custom_number = numbered[len(numbered) - 1] + 1
     if not values:
         raise ValueError("Can't let user decide on an empty list")
     for idx, value in enumerate(values):
-        print("{}: {}".format(value, numbered[idx]))
+        print("{}: {}".format(numbered[idx], value))
     if allow_custom:
         print("\n{}: Custom (User input)".format(custom_number))
 
     try:
-        choice = type_cast_f(input("What should the episode be renamed to?\n"))
+        choice = type_cast_f(input("Please enter your choice?\n"))
     except TypeError:
         print("Please enter a valid option")
         return get_user_decision(values=values, numbered=numbered, type_cast_f=type_cast_f)
@@ -51,19 +75,30 @@ def get_user_decision(*, values, numbered, type_cast_f, allow_custom=True):
         return values[choice]
 
 
-def main(directory: str, show_name: str, year: int):
-    episodes = get_episodes(show_name, year=year)
+def main(directory: str, show_name: str, year: int = None, file_ext: str = ".mkv", season_prefix: str = "S",
+         episode_prefix: str = "E"):
+    global imdb
 
-    for path, directories, files in os.walk(directory):
-        mkv_files = filter(lambda file: file.endswith(".mkv"), files)
-        for mkv in mkv_files:
+    if not file_ext.startswith("."):
+        file_ext = ".{}".format(file_ext)
+
+    imdb = Imdb()
+    print("Retrieving show from imdb")
+    show: Dict[str, Any] = get_show(show_name, year)
+    print("Retrieving episodes for {} from imdb".format(show_name))
+    episodes = get_episodes(show['imdb_id'])
+
+    print("Renaming {} files in diretory".format(file_ext))
+    for path, _, files in os.walk(directory):
+        video_files = filter(lambda file: file.endswith(".video"), files)
+        for video in video_files:
             try:
-                season_nr, episode_nr = retrieve_season_episode_from_file(mkv, show_name)
+                season_nr, episode_nr = retrieve_season_episode_from_file(video, show_name)
             except IndexError:
-                print("Couldn't retrieve season/episode from {}".format(mkv))
+                print("Couldn't retrieve season/episode from {}".format(video))
                 continue
 
-            file = os.path.join(path, mkv)
+            file = os.path.join(path, video)
             possible_episodes = list(filter(lambda ep: ep.season == season_nr and ep.episode == episode_nr,
                                             episodes))
             if len(possible_episodes) == 1:
@@ -84,5 +119,8 @@ def main(directory: str, show_name: str, year: int):
             title = title.replace(":", "-")
             show_name = show_name.replace(" ", "_")
 
-            new_name = "{}_S{}_E{}_{}.mkv".format(show_name, season_nr, episode_nr, title)
-            os.rename(file, os.path.join(path, new_name))
+            new_name = "{}_{}{}_{}{}_{}.{}".format(show_name, season_prefix, season_nr, episode_prefix, episode_nr,
+                                                   title, file_ext)
+            new = os.path.join(path, new_name)
+            print("{} -> {}".format(os.path.basename(file), os.path.basename(new)))
+            os.rename(file, new)
