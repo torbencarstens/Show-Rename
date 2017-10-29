@@ -41,8 +41,8 @@ def get_episodes(show_id):
     return episodes
 
 
-def retrieve_season_episode_from_file(filename, show_name) -> Tuple[int, int]:
-    season_nr, episode_nr = re.findall(r"{}.*?S(\d+).*?E(\d+).*".format(show_name), filename)[0]
+def retrieve_season_episode_from_file(filename) -> Tuple[int, int]:
+    season_nr, episode_nr = re.findall(r".*?S(\d+).*?E(\d+).*", filename)[0]
     return int(season_nr), int(episode_nr)
 
 
@@ -87,16 +87,14 @@ def main(directory: str, show_name: str, year: int = None, file_ext: str = ".mkv
     show: Dict[str, Any] = get_show(show_name, year)
     print("Retrieving episodes for {} from imdb".format(show_name))
     episodes = get_episodes(show['imdb_id'])
-
     renaming_mapping = {}
 
     print("Creating new episode names for {} files".format(file_ext))
     for path, _, files in os.walk(directory):
         video_files = filter(lambda file: file.endswith(file_ext), files)
         for video in video_files:
-            print("Find episode for {}".format(os.path.basename(video)))
             try:
-                season_nr, episode_nr = retrieve_season_episode_from_file(video, show_name)
+                season_nr, episode_nr = retrieve_season_episode_from_file(video)
             except IndexError:
                 print("Couldn't retrieve season/episode from {}".format(video))
                 continue
@@ -122,8 +120,8 @@ def main(directory: str, show_name: str, year: int = None, file_ext: str = ".mkv
             title = title.replace(":", "-")
             show_name = show_name.replace(" ", "_")
 
-            new_name = "{}_{}{}_{}{}_{}.{}".format(show_name, season_prefix, season_nr, episode_prefix, episode_nr,
-                                                   title, file_ext)
+            new_name = "{}_{}{}_{}{}_{}{}".format(show_name, season_prefix, season_nr, episode_prefix, episode_nr,
+                                                  title, file_ext)
 
             new = os.path.join(path, new_name)
             renaming_mapping[file] = new
