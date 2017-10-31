@@ -1,9 +1,7 @@
-import re
 import os
-from typing import Any, Dict, Tuple
-
-import colorama
+import re
 from imdbpie import Imdb
+from typing import Any, Dict, Tuple
 
 imdb: Imdb = None
 
@@ -75,7 +73,7 @@ def get_user_decision(*, values, numbered=None, type_cast_f=None, allow_custom=F
         return values[choice]
 
 
-def main(directory: str, show_name: str, year: int = None, file_ext: str = ".mkv", season_prefix: str = "S",
+def main(directory: str, show_name: str, file_ext: str, year: int = None, season_prefix: str = "S",
          episode_prefix: str = "E", confirm_renaming: bool = False):
     global imdb
 
