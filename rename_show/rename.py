@@ -73,6 +73,20 @@ def get_user_decision(*, values, numbered=None, type_cast_f=None, allow_custom=F
         return values[choice]
 
 
+def sanitize(name: str):
+    bad_chars = ["?", "/", "<", ">", ":", "\"", "\\", "|", "*", " ", "\t", "\n", "\r"]
+
+    # Sanitize first 32 ASCII Characters
+    for i in range(0, 31):
+        name = name.replace("{:02d}".format(i), "_")
+
+    for bad_char in bad_chars:
+        name = name.replace(bad_char, "_")
+
+    # Windows doesn't allow dots (.) or spaces ( ) at the end of a file
+    return name.rstrip(".").rstrip(" ")
+
+
 def main(directory: str, show_name: str, file_ext: str, year: int = None, season_prefix: str = "S",
          episode_prefix: str = "E", confirm_renaming: bool = False):
     global imdb
@@ -117,6 +131,7 @@ def main(directory: str, show_name: str, file_ext: str, year: int = None, season
             title = episode.title.replace(" ", "_")
             title = title.replace(":", "-")
             show_name = show_name.replace(" ", "_")
+            title = sanitize(title)
 
             new_name = "{}_{}{}_{}{}_{}{}".format(show_name, season_prefix, season_nr, episode_prefix, episode_nr,
                                                   title, file_ext)
