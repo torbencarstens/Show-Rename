@@ -5,7 +5,7 @@ Usage:
 Options:
     --name=<name>
     -d --directory=<directory>
-
+    -f --file-ext=<file-ext>
 """
 
 from docopt import docopt
@@ -21,4 +21,5 @@ if __name__ == "__main__":
         file_ext = ".mkv"
     elif not file_ext.startswith("."):
         file_ext = ".{}".format(file_ext)
+
     main(directory, show_name, file_ext=file_ext)
