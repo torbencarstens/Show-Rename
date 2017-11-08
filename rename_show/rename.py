@@ -95,8 +95,54 @@ def sanitize(name: str):
     return name.rstrip(".").rstrip(" ")
 
 
+def get_episode_title(episodes, season_nr, episode_nr):
+    possible_episodes = list(filter(lambda ep: ep.season == season_nr and ep.episode == episode_nr,
+                                    episodes))
+    if len(possible_episodes) == 1:
+        episode = possible_episodes[0]
+    elif len(possible_episodes) > 1:
+        print("Found multiple episode names for one episode: ")
+        episode = get_user_decision(values=possible_episodes, numbered=range(0, len(possible_episodes) - 1),
+                                    type_cast_f=lambda x: int(x))
+    else:
+        print("Couldn't find episode name for S{}E".format(season_nr, episode_nr))
+        raise ValueError("Couldn't find episode name for S{}E".format(season_nr, episode_nr))
+
+    return sanitize(episode.title)
+
+
+def rename(root_path, episodes, show_name, file_ext, confirm_renaming):
+    renaming_mapping = {}
+    for file in get_episodes_in_directory(root_path, file_ext):
+        try:
+            season_nr, episode_nr = retrieve_season_episode_from_file(os.path.basename(file))
+        except IndexError:
+            print("Couldn't retrieve season/episode from {}".format(os.path.basename(file)))
+            continue
+        title = get_episode_title(episodes, season_nr, episode_nr)
+
+        new_name = "{}_S{:02d}_E{:02d}_{}{}".format(show_name, season_nr, episode_nr,
+                                                    title, file_ext)
+        new = os.path.join(root_path, new_name)
+        renaming_mapping[file] = new
+
+    if confirm_renaming:
+        print("Do you want to rename the previous episodes in {}:".format(root_path))
+        if get_user_decision(values=['Yes', 'No']) == 'No':
+            return None
+    else:
+        print("Renaming episodes")
+        for old, new in renaming_mapping.items():
+            os.rename(old, new)
+
+
+def get_episodes_in_directory(path, file_ext):
+    for _, _, files in os.walk(path):
+        return [os.path.join(path, file) for file in filter(lambda file: file.endswith(file_ext), files)]
+
+
 def main(directory: str, show_name: str, file_ext: str, strict: bool = False, year: int = None,
-         season_prefix: str = "S", episode_prefix: str = "E", confirm_renaming: bool = False):
+         confirm_renaming: bool = False):
     global imdb
 
     if not file_ext.startswith("."):
@@ -107,51 +153,10 @@ def main(directory: str, show_name: str, file_ext: str, strict: bool = False, ye
     show: Dict[str, Any] = get_show(show_name, year, strict)
     print("Retrieving episodes for {} from imdb".format(show_name))
     episodes = get_episodes(show['imdb_id'])
-    renaming_mapping = {}
 
     print("Creating new episode names for {} files".format(file_ext))
-    for path, _, files in os.walk(directory):
-        video_files = filter(lambda file: file.endswith(file_ext), files)
-        for video in video_files:
-            try:
-                season_nr, episode_nr = retrieve_season_episode_from_file(video)
-            except IndexError:
-                print("Couldn't retrieve season/episode from {}".format(video))
-                continue
-
-            file = os.path.join(path, video)
-            possible_episodes = list(filter(lambda ep: ep.season == season_nr and ep.episode == episode_nr,
-                                            episodes))
-            if len(possible_episodes) == 1:
-                episode = possible_episodes[0]
-            elif len(possible_episodes) > 1:
-                print("Found multiple episode names for one episode: ")
-                try:
-                    episode = get_user_decision(values=possible_episodes, numbered=range(0, len(possible_episodes) - 1),
-                                                type_cast_f=lambda x: int(x))
-                except InterruptedError:
-                    print("Haven't renamed episode S{}E{}".format(season_nr, episode_nr))
-                    continue
-            else:
-                print("Couldn't find episode name for S{}E".format(season_nr, episode_nr))
-                continue
-
-            title = episode.title.replace(" ", "_")
-            title = title.replace(":", "-")
-            show_name = show_name.replace(" ", "_")
-            title = sanitize(title)
-
-            new_name = "{}_{}{}_{}{}_{}{}".format(show_name, season_prefix, season_nr, episode_prefix, episode_nr,
-                                                  title, file_ext)
-
-            new = os.path.join(path, new_name)
-            renaming_mapping[file] = new
-            print("{} -> {}".format(os.path.basename(file), os.path.basename(new)))
-
-        if confirm_renaming:
-            print("Do you want to rename the previous episodes in {}:".format(path))
-            if get_user_decision(values=['Yes', 'No']) == 'No':
-                return None
-        print("Renaming episodes")
-        for old, new in renaming_mapping.items():
-            os.rename(old, new)
+    for root, directories, _ in os.walk(directory):
+        rename(directory, episodes, show_name, file_ext, confirm_renaming)
+        for directory in directories:
+            directory = os.path.join(root, directory)
+            rename(directory, episodes, show_name, file_ext, confirm_renaming)
