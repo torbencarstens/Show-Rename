@@ -6,16 +6,21 @@ from typing import Any, Dict, Tuple
 imdb: Imdb = None
 
 
-def get_show(show_name, year):
+def get_show(show_name, year, strict):
     global imdb
 
     results = imdb.search_for_title(show_name)
     if year:
         results = filter(lambda result: result['year'] and int(result['year']) == year, results)
 
-    results = list(
-        filter(lambda result:
-               result['title'] == show_name, results))
+    if strict:
+        results = list(
+            filter(lambda result:
+                   result['title'] == show_name, results))
+    else:
+        results = list(
+            filter(lambda result:
+                   show_name in result['title'], results))
 
     if len(results) == 1:
         return results[0]
@@ -90,8 +95,8 @@ def sanitize(name: str):
     return name.rstrip(".").rstrip(" ")
 
 
-def main(directory: str, show_name: str, file_ext: str, year: int = None, season_prefix: str = "S",
-         episode_prefix: str = "E", confirm_renaming: bool = False):
+def main(directory: str, show_name: str, file_ext: str, strict: bool = False, year: int = None,
+         season_prefix: str = "S", episode_prefix: str = "E", confirm_renaming: bool = False):
     global imdb
 
     if not file_ext.startswith("."):
@@ -99,7 +104,7 @@ def main(directory: str, show_name: str, file_ext: str, year: int = None, season
 
     imdb = Imdb()
     print("Retrieving show from imdb")
-    show: Dict[str, Any] = get_show(show_name, year)
+    show: Dict[str, Any] = get_show(show_name, year, strict)
     print("Retrieving episodes for {} from imdb".format(show_name))
     episodes = get_episodes(show['imdb_id'])
     renaming_mapping = {}
