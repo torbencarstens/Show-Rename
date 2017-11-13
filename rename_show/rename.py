@@ -23,14 +23,17 @@ def get_show(show_name, year, strict):
             filter(lambda result:
                    show_name in result['title'], results))
 
+    results = list(filter(lambda show: show.type == "tv_series",
+                          map(lambda result: imdb.get_title_by_id(result['imdb_id']), results)))
+
     if len(results) == 1:
-        return results[0]
+        show = results[0]
+        return {'title': show.title, 'year': show.year, 'plot_outline': show.plot_outline,
+                'imdb_id': show.imdb_id}
     elif len(results) > 1:
-        shows = filter(lambda show: show.type == "tv_series",
-                       map(lambda result: imdb.get_title_by_id(result['imdb_id']), results))
         shows = list(
             map(lambda show: {'title': show.title, 'year': show.year, 'plot_outline': show.plot_outline,
-                              'imdb_id': show.imdb_id}, shows))
+                              'imdb_id': show.imdb_id}, results))
         print(
             "Multiple shows with <[name] {} | [year] {}> have been found. Please choose one from the following list: ".format(
                 show_name, year))
@@ -58,6 +61,9 @@ def get_user_decision(*, values, numbered=None, type_cast_f=None, allow_custom=F
     if not numbered:
         numbered = range(0, len(values))
         type_cast_f = int
+
+    if len(values) == 1:
+        return values[0]
 
     custom_number = numbered[len(numbered) - 1] + 1
     if not values:
