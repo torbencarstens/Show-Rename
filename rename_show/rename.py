@@ -143,9 +143,12 @@ def get_episodes_in_directory(path, file_ext):
 
 
 def main(directory: str, show_name: str, file_ext: str, strict: bool = False, year: int = None,
-         confirm_renaming: bool = False):
+         confirm_renaming: bool = False, rename_to: str = None):
     global imdb
 
+    if not rename_to:
+        rename_to = show_name
+    rename_to = sanitize(rename_to)
     if not file_ext.startswith("."):
         file_ext = ".{}".format(file_ext)
 
@@ -157,7 +160,7 @@ def main(directory: str, show_name: str, file_ext: str, strict: bool = False, ye
 
     print("Creating new episode names for {} files".format(file_ext))
     for root, directories, _ in os.walk(directory):
-        rename(directory, episodes, show_name, file_ext, confirm_renaming)
+        rename(directory, episodes, rename_to, file_ext, confirm_renaming)
         for directory in directories:
             directory = os.path.join(root, directory)
-            rename(directory, episodes, show_name, file_ext, confirm_renaming)
+            rename(directory, episodes, rename_to, file_ext, confirm_renaming)
