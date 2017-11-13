@@ -1,6 +1,7 @@
 import os
 import re
 from imdbpie import Imdb
+from itertools import chain
 from typing import Any, Dict, Tuple
 
 imdb: Imdb = None
@@ -85,14 +86,16 @@ def get_user_decision(*, values, numbered=None, type_cast_f=None, allow_custom=F
 def sanitize(name: str):
     bad_chars = ["?", "/", "<", ">", ":", "\"", "\\", "|", "*", " ", "\t", "\n", "\r"]
 
-    # Sanitize first 32 ASCII Characters
-    for i in range(0, 31):
+    # Sanitize ASCII Characters
+    for i in chain(range(0, 47), range(158, 158), range(59, 64), range(91, 96), range(123, 127)):
         name = name.replace("{:02d}".format(i), "_")
 
     for bad_char in bad_chars:
         name = name.replace(bad_char, "_")
 
     # Windows doesn't allow dots (.) or spaces ( ) at the end of a file
+
+    name = re.sub("_+", r"_", name)
     return name.rstrip(".").rstrip(" ")
 
 
