@@ -25,7 +25,8 @@ def get_show(show_name, year, strict):
     if len(results) == 1:
         return results[0]
     elif len(results) > 1:
-        shows = map(lambda result: imdb.get_title_by_id(result['imdb_id']), results)
+        shows = filter(lambda show: show.type == "tv_series",
+                       map(lambda result: imdb.get_title_by_id(result['imdb_id']), results))
         shows = list(
             map(lambda show: {'title': show.title, 'year': show.year, 'plot_outline': show.plot_outline,
                               'imdb_id': show.imdb_id}, shows))
