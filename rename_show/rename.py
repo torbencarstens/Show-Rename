@@ -163,6 +163,28 @@ def get_episodes_in_directory(path, file_ext):
         return [os.path.join(path, file) for file in filter(lambda file: file.endswith(file_ext), files)]
 
 
+def write_imdb_file(filename, id):
+    with open(filename, "w+") as imdb_file:
+        imdb_file.write(id)
+
+
+def get_imdb_id(directory):
+    imdb_filepath = os.path.join(directory, ".imdb_id")
+    if os.path.exists(imdb_filepath):
+        with open(imdb_filepath, "r") as imdb_file:
+            return "".join(imdb_file.readlines()).strip().rstrip()
+
+    for root, directories, files in os.walk(directory):
+        for directory in directories:
+            try:
+                with open(os.path.join(root, directory, ".imdb_id"), "r") as imdb_file:
+                    return "".join(imdb_file.readlines()).strip().rstrip()
+            except OSError:
+                pass
+
+    return None
+
+
 def main(directory: str, show_name: str, file_ext: str, strict: bool = False, year: int = None,
          confirm_renaming: bool = False, rename_to: str = None, season: int = None):
     global imdb
@@ -175,13 +197,18 @@ def main(directory: str, show_name: str, file_ext: str, strict: bool = False, ye
 
     imdb = Imdb()
     print("Retrieving show from imdb")
-    show: Dict[str, Any] = get_show(show_name, year, strict)
+    imdb_id = get_imdb_id(directory)
+    if not imdb_id:
+        show: Dict[str, Any] = get_show(show_name, year, strict)
+        imdb_id = show['imdb_id']
     print("Retrieving episodes for {} from imdb".format(show_name))
     episodes = get_episodes(imdb_id)
 
     print("Creating new episode names for {} files".format(file_ext))
     for root, directories, _ in os.walk(directory):
         rename(directory, episodes, rename_to, file_ext, confirm_renaming, season)
+        write_imdb_file(os.path.join(root, ".imdb_id"), imdb_id)
         for directory in directories:
+            write_imdb_file(os.path.join(root, directory, ".imdb_id"), imdb_id)
             directory = os.path.join(root, directory)
             rename(directory, episodes, rename_to, file_ext, confirm_renaming)
