@@ -8,6 +8,7 @@ Options:
     -f --file-ext=<file-ext>
     --strict
     --rename-to=<rename-to>
+    --season=<season>
 """
 
 from docopt import docopt
@@ -20,10 +21,11 @@ if __name__ == "__main__":
     args = docopt(__doc__)
     directory, show_name, file_ext = args["--directory"], args["--name"], args["--file-ext"]
     rename_to = args['--rename-to']
+    season = int(args['--season'])
     strict = 'nostrict' in args.keys()
     if not file_ext:
         file_ext = ".mkv"
     elif not file_ext.startswith("."):
         file_ext = ".{}".format(file_ext)
 
-    main(directory, show_name, file_ext=file_ext, strict=strict, rename_to=rename_to)
+    main(directory, show_name, file_ext=file_ext, strict=strict, rename_to=rename_to, season=season)
