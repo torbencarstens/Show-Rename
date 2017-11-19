@@ -11,6 +11,7 @@ def get_show(show_name, year, strict):
     global imdb
 
     results = imdb.search_for_title(show_name)
+
     if year:
         results = filter(lambda result: result['year'] and int(result['year']) == year, results)
 
@@ -55,6 +56,12 @@ def retrieve_season_episode_from_file(filename) -> Tuple[int, int]:
     except IndexError:
         season_nr, episode_nr = re.findall("(?i).*?(\d+)x(\d+).*?", filename)[0]
     return int(season_nr), int(episode_nr)
+
+
+def retrieve_episode_from_file(filename):
+    episode_nr = re.findall(r"(?i)E(:?p(?:isode)?)?\s*(\d+)", filename)[0][1]
+
+    return int(episode_nr)
 
 
 def get_user_decision(*, values, numbered=None, type_cast_f=None, allow_custom=False):
@@ -108,6 +115,7 @@ def sanitize(name: str):
 def get_episode_title(episodes, season_nr, episode_nr):
     possible_episodes = list(filter(lambda ep: ep.season == season_nr and ep.episode == episode_nr,
                                     episodes))
+
     if len(possible_episodes) == 1:
         episode = possible_episodes[0]
     elif len(possible_episodes) > 1:
@@ -115,17 +123,21 @@ def get_episode_title(episodes, season_nr, episode_nr):
         episode = get_user_decision(values=possible_episodes, numbered=range(0, len(possible_episodes) - 1),
                                     type_cast_f=lambda x: int(x))
     else:
-        print("Couldn't find episode name for S{}E".format(season_nr, episode_nr))
-        raise ValueError("Couldn't find episode name for S{}E".format(season_nr, episode_nr))
+        print("Couldn't find episode name for S{}E{}".format(season_nr, episode_nr))
+        raise ValueError("Couldn't find episode name for S{}E{}".format(season_nr, episode_nr))
 
     return sanitize(episode.title)
 
 
-def rename(root_path, episodes, show_name, file_ext, confirm_renaming):
+def rename(root_path, episodes, show_name, file_ext, confirm_renaming: bool = False, manual_season: int = None):
     renaming_mapping = {}
     for file in get_episodes_in_directory(root_path, file_ext):
         try:
-            season_nr, episode_nr = retrieve_season_episode_from_file(os.path.basename(file))
+            if manual_season:
+                season_nr = manual_season
+                episode_nr = retrieve_episode_from_file(os.path.basename(file))
+            else:
+                season_nr, episode_nr = retrieve_season_episode_from_file(os.path.basename(file))
         except IndexError:
             print("Couldn't retrieve season/episode from {}".format(os.path.basename(file)))
             continue
@@ -152,7 +164,7 @@ def get_episodes_in_directory(path, file_ext):
 
 
 def main(directory: str, show_name: str, file_ext: str, strict: bool = False, year: int = None,
-         confirm_renaming: bool = False, rename_to: str = None):
+         confirm_renaming: bool = False, rename_to: str = None, season: int = None):
     global imdb
 
     if not rename_to:
@@ -165,11 +177,11 @@ def main(directory: str, show_name: str, file_ext: str, strict: bool = False, ye
     print("Retrieving show from imdb")
     show: Dict[str, Any] = get_show(show_name, year, strict)
     print("Retrieving episodes for {} from imdb".format(show_name))
-    episodes = get_episodes(show['imdb_id'])
+    episodes = get_episodes(imdb_id)
 
     print("Creating new episode names for {} files".format(file_ext))
     for root, directories, _ in os.walk(directory):
-        rename(directory, episodes, rename_to, file_ext, confirm_renaming)
+        rename(directory, episodes, rename_to, file_ext, confirm_renaming, season)
         for directory in directories:
             directory = os.path.join(root, directory)
             rename(directory, episodes, rename_to, file_ext, confirm_renaming)
