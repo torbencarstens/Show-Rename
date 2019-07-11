@@ -1,3 +1,3 @@
-imdbpie
+imdbpie==5.6.4
 docopt
 colorama

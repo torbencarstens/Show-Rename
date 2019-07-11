@@ -21,7 +21,7 @@ if __name__ == "__main__":
     args = docopt(__doc__)
     directory, show_name, file_ext = args["--directory"], args["--name"], args["--file-ext"]
     rename_to = args['--rename-to']
-    season = int(args['--season'])
+    season = args['--season']
     strict = 'nostrict' in args.keys()
     if not file_ext:
         file_ext = ".mkv"
