@@ -31,14 +31,14 @@ def get_show(show_name, year, strict):
 
     if len(results) == 1:
         show = results[0]
-        imdb_id = show["base"]["id"].replace("/title/", "")
+        imdb_id = show["base"]["id"].replace("/title/", "").strip("/")
         return {'title': show["base"]["title"], 'year': show["base"]["year"], 'plot_outline': show["plot"]["outline"],
                 'imdb_id': imdb_id}
     elif len(results) > 1:
         shows = list(
             map(lambda show: {'title': show["base"]["title"], 'year': show["base"]["year"],
                               'plot_outline': show["plot"]["outline"],
-                              'imdb_id': show["base"]["id"].replace("/title/", "")}, results))
+                              'imdb_id': show["base"]["id"].replace("/title/", "").rstrip("/")}, results))
         print(
             f"Multiple shows with <[name] {show_name} | [year] {year}> have been found. Please choose one from the following list: ")
         return get_user_decision(values=shows)
@@ -58,6 +58,7 @@ def retrieve_season_episode_from_file(filename) -> Tuple[int, int]:
         season_nr, episode_nr = re.findall(r"(?i).*?S(\d+).*?E(\d+).*", filename)[0]
     except IndexError:
         season_nr, episode_nr = re.findall("(?i).*?(\d+)x(\d+).*?", filename)[0]
+
     return int(season_nr), int(episode_nr)
 
 
@@ -144,8 +145,10 @@ def rename(root_path, episodes, show_name, file_ext, confirm_renaming: bool = Fa
             continue
         title = get_episode_title(episodes, season_nr, episode_nr)
 
-        new_name = "{}_S{:02d}_E{:02d}_{}{}".format(show_name, season_nr, episode_nr,
-                                                    title, file_ext)
+        new_name = "{}_S{:02d}_E{:02d}_{}".format(show_name, season_nr, episode_nr,
+                                                    title)
+        new_name = ".".join([new_name, file_ext])
+
         new = os.path.join(root_path, new_name)
         renaming_mapping[file] = new
 
