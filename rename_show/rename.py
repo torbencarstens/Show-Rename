@@ -171,7 +171,8 @@ def write_imdb_file(filename, imdb_id):
     with open(filename, "w+") as imdb_file:
         imdb_file.write(imdb_id)
 
-    result = ctypes.windll.kernel32.SetFileAttributesW(filename, 0x02)
+    if os.name == "nt":
+        ctypes.windll.kernel32.SetFileAttributesW(filename, 0x02)
 
 
 def get_imdb_id(directory):
