@@ -2,14 +2,14 @@ import ctypes
 import os
 import re
 from itertools import chain
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, Callable, Optional, List
 
 from imdbpie import Imdb
 
 imdb: Imdb = None
 
 
-def get_show(show_name, year, strict):
+def get_show(show_name: str, year: int, strict: bool) -> Dict[str, Any]:
     global imdb
 
     results = imdb.search_for_title(show_name)
@@ -47,14 +47,14 @@ def get_show(show_name, year, strict):
     raise ValueError("Show with <[name] {} | [year] {}> does not exist".format(show_name, year))
 
 
-def get_episodes(show_id):
+def get_episodes(show_id: str) -> Dict[str, Any]:
     global imdb
     episodes = imdb.get_title_episodes(show_id)
 
     return episodes
 
 
-def retrieve_season_episode_from_file(filename) -> Tuple[int, int]:
+def retrieve_season_episode_from_file(filename: str) -> Tuple[int, int]:
     try:
         season_nr, episode_nr = re.findall(r"(?i).*?S(\d+).*?E(\d+).*", filename)[0]
     except IndexError:
@@ -63,13 +63,14 @@ def retrieve_season_episode_from_file(filename) -> Tuple[int, int]:
     return int(season_nr), int(episode_nr)
 
 
-def retrieve_episode_from_file(filename):
+def retrieve_episode_from_file(filename: str) -> int:
     episode_nr = re.findall(r"(?i)E(:?p(?:isode)?)?\s*(\d+)", filename)[0][1]
 
     return int(episode_nr)
 
 
-def get_user_decision(*, values, numbered=None, type_cast_f=None, allow_custom=False):
+def get_user_decision(*, values, numbered: bool = None, type_cast_f: Optional[Callable] = None,
+                      allow_custom: bool = False):
     if not numbered:
         numbered = range(0, len(values))
         type_cast_f = int
@@ -101,7 +102,7 @@ def get_user_decision(*, values, numbered=None, type_cast_f=None, allow_custom=F
         return values[choice]
 
 
-def sanitize(name: str):
+def sanitize(name: str) -> str:
     bad_chars = ["?", "/", "<", ">", ":", "\"", "\\", "|", "*", " ", "\t", "\n", "\r"]
 
     # Sanitize ASCII Characters
@@ -117,7 +118,7 @@ def sanitize(name: str):
     return name.rstrip(".").rstrip(" ")
 
 
-def get_episode_title(episodes, season_nr, episode_nr):
+def get_episode_title(episodes: Dict[str, Any], season_nr: int, episode_nr: int) -> str:
     try:
         episodes = episodes["seasons"][season_nr - 1]["episodes"]
     except (IndexError, KeyError):
@@ -131,7 +132,8 @@ def get_episode_title(episodes, season_nr, episode_nr):
     return sanitize(episode["title"])
 
 
-def rename(root_path, episodes, show_name, file_ext, confirm_renaming: bool = False, manual_season: int = None):
+def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: str, confirm_renaming: bool = False,
+           manual_season: int = None) -> None:
     renaming_mapping = {}
     for file in get_episodes_in_directory(root_path, file_ext):
         basename = os.path.basename(file)
@@ -162,12 +164,12 @@ def rename(root_path, episodes, show_name, file_ext, confirm_renaming: bool = Fa
             os.rename(old, new)
 
 
-def get_episodes_in_directory(path, file_ext):
+def get_episodes_in_directory(path: str, file_ext: str) -> List[str]:
     for _, _, files in os.walk(path):
         return [os.path.join(path, file) for file in filter(lambda file: file.endswith(file_ext), files)]
 
 
-def write_imdb_file(filename, imdb_id):
+def write_imdb_file(filename: str, imdb_id: str):
     with open(filename, "w+") as imdb_file:
         imdb_file.write(imdb_id)
 
@@ -175,7 +177,7 @@ def write_imdb_file(filename, imdb_id):
         ctypes.windll.kernel32.SetFileAttributesW(filename, 0x02)
 
 
-def get_imdb_id(directory):
+def get_imdb_id(directory: str) -> Optional[str]:
     imdb_filepath = os.path.join(directory, ".imdb_id")
     if os.path.exists(imdb_filepath):
         with open(imdb_filepath, "r") as imdb_file:
