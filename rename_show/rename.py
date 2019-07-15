@@ -146,8 +146,7 @@ def rename(root_path, episodes, show_name, file_ext, confirm_renaming: bool = Fa
             continue
         title = get_episode_title(episodes, season_nr, episode_nr)
 
-        new_name = "{}_S{:02d}_E{:02d}_{}".format(show_name, season_nr, episode_nr,
-                                                    title)
+        new_name = "_".join([i for i in [show_name, f"S{season_nr:02d}", f"E{episode_nr:02d}", title] if i])
         new_name = ".".join([new_name, file_ext])
 
         new = os.path.join(root_path, new_name)
