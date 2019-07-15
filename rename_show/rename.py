@@ -1,3 +1,4 @@
+import ctypes
 import os
 import re
 from itertools import chain
@@ -167,9 +168,11 @@ def get_episodes_in_directory(path, file_ext):
         return [os.path.join(path, file) for file in filter(lambda file: file.endswith(file_ext), files)]
 
 
-def write_imdb_file(filename, id):
+def write_imdb_file(filename, imdb_id):
     with open(filename, "w+") as imdb_file:
-        imdb_file.write(id)
+        imdb_file.write(imdb_id)
+
+    result = ctypes.windll.kernel32.SetFileAttributesW(filename, 0x02)
 
 
 def get_imdb_id(directory):
