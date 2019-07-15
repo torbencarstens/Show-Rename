@@ -195,7 +195,7 @@ def main(directory: str, show_name: str, file_ext: str, strict: bool = False, ye
          confirm_renaming: bool = False, rename_to: str = None, season: str = None):
     global imdb
 
-    if not rename_to:
+    if rename_to is None:
         rename_to = show_name
     rename_to = sanitize(rename_to)
     if not file_ext.startswith("."):
