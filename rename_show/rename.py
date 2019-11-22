@@ -201,8 +201,6 @@ def main(directory: str, show_name: str, file_ext: str, strict: bool = False, ye
     if rename_to is None:
         rename_to = show_name
     rename_to = sanitize(rename_to)
-    if not file_ext.startswith("."):
-        file_ext = f".{file_ext}"
 
     imdb = Imdb()
     print("Retrieving show from imdb")
