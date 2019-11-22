@@ -24,9 +24,10 @@ if __name__ == "__main__":
     season = args['--season']
     strict = 'strict' in args.keys()
     if not file_ext:
-        file_ext = ".mkv"
-    elif not file_ext.startswith("."):
-        file_ext = ".{}".format(file_ext)
+        file_ext = "mkv"
+    elif file_ext.startswith("."):
+        file_ext = file_ext[1:]
+
     if not directory:
         directory = "."
 
