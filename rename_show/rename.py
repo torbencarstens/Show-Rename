@@ -33,12 +33,12 @@ def get_show(show_name: str, year: int, strict: bool) -> Dict[str, Any]:
     if len(results) == 1:
         show = results[0]
         imdb_id = show["base"]["id"].replace("/title/", "").strip("/")
-        return {'title': show["base"]["title"], 'year': show["base"]["year"], 'plot_outline': show["plot"]["outline"],
-                'imdb_id': imdb_id}
+        return {'title': show["base"]["title"], 'year': show["base"]["year"],
+                'plot_outline': show.get("plot", {}).get("outline", ""), 'imdb_id': imdb_id}
     elif len(results) > 1:
         shows = list(
             map(lambda show: {'title': show["base"]["title"], 'year': show["base"]["year"],
-                              'plot_outline': show["plot"]["outline"],
+                              'plot_outline': show.get("plot", {}).get("outline", ""),
                               'imdb_id': show["base"]["id"].replace("/title/", "").rstrip("/")}, results))
         print(
             f"Multiple shows with <[name] {show_name} | [year] {year}> have been found. Please choose one from the following list: ")
