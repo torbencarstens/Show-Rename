@@ -22,7 +22,7 @@ if __name__ == "__main__":
     directory, show_name, file_ext = args["--directory"], args["--name"], args["--file-ext"]
     rename_to = args['--rename-to']
     season = args['--season']
-    strict = 'nostrict' in args.keys()
+    strict = 'strict' in args.keys()
     if not file_ext:
         file_ext = ".mkv"
     elif not file_ext.startswith("."):
