@@ -1,8 +1,9 @@
 import ctypes
 import os
 import re
+from collections import defaultdict
 from itertools import chain
-from typing import Any, Dict, Tuple, Callable, Optional, List
+from typing import Any, Dict, Tuple, Callable, Optional, List, Union
 
 from imdbpie import Imdb
 
@@ -69,7 +70,7 @@ def retrieve_episode_from_file(filename: str) -> int:
     return int(episode_nr)
 
 
-def get_user_decision(*, values, numbered: bool = None, type_cast_f: Optional[Callable] = None,
+def get_user_decision(*, values, numbered: bool = False, type_cast_f: Optional[Callable] = None,
                       allow_custom: bool = False):
     if not numbered:
         numbered = range(0, len(values))
@@ -118,50 +119,86 @@ def sanitize(name: str) -> str:
     return name.rstrip(".").rstrip(" ")
 
 
-def get_episode_title(episodes: Dict[str, Any], season_nr: int, episode_nr: int) -> str:
+def get_episode_title(episodes: Dict[str, Any], season_number: int, episode_number: int) -> str:
     try:
-        episodes = episodes["seasons"][season_nr - 1]["episodes"]
+        episodes = episodes["seasons"][season_number - 1]["episodes"]
     except (IndexError, KeyError):
-        raise ValueError(f"Invalid season number ({season_nr}), there are only {len(episodes['seasons'])} seasons")
+        raise ValueError(f"Invalid season number ({season_number}), there are only {len(episodes['seasons'])} seasons")
+
+    # IMDB ocassionally starts episode numbers at `0`
+    if episodes[0]["episode"] == 0:
+        episode_number -= 1
 
     try:
-        episode = episodes[episode_nr - 1]
+        episode = [episode for episode in episodes if episode.get("episode", -1) == episode_number][0]
     except IndexError:
-        raise ValueError(f"Couldn't find episode name for S{season_nr}E{episode_nr}")
+        raise ValueError(f"Couldn't find episode name for S{season_number}E{episode_number}")
 
     return sanitize(episode["title"])
 
 
 def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: str, confirm_renaming: bool = False,
            manual_season: int = None) -> None:
-    renaming_mapping = {}
+    renaming_mapping: Dict[str, Dict[str, Union[bool, str]]] = defaultdict(dict)
+
+    season_number = 0
     for file in get_episodes_in_directory(root_path, file_ext):
+        renaming_mapping[file]["success"] = True
+
         basename = os.path.basename(file)
         try:
             if manual_season:
-                season_nr = int(manual_season)
+                season_number = int(manual_season)
                 episode_nr = retrieve_episode_from_file(basename)
             else:
-                season_nr, episode_nr = retrieve_season_episode_from_file(basename)
+                season_number, episode_nr = retrieve_season_episode_from_file(basename)
         except IndexError:
             print(f"Couldn't retrieve season/episode from {basename}")
             continue
-        title = get_episode_title(episodes, season_nr, episode_nr)
 
-        new_name = "_".join([i for i in [show_name, f"S{season_nr:02d}", f"E{episode_nr:02d}", title] if i])
+        try:
+            title = get_episode_title(episodes, season_number, episode_nr)
+        except ValueError:
+            renaming_mapping[file]["success"] = False
+            break
+
+        new_name = "_".join([i for i in [show_name, f"S{season_number:02d}", f"E{episode_nr:02d}", title] if i])
         new_name = ".".join([new_name, file_ext])
 
         new = os.path.join(root_path, new_name)
-        renaming_mapping[file] = new
+        renaming_mapping[file]["name"] = new
 
     if confirm_renaming:
         print("Do you want to rename the previous episodes in {}:".format(root_path))
-        if get_user_decision(values=['Yes', 'No']) == 'No':
+        if get_user_decision(values=["No", "Yes"]) == 'No':
             return None
 
-    print("Renaming episodes")
-    for old, new in renaming_mapping.items():
-        os.rename(old, new)
+    if all([result["success"] for _, result in renaming_mapping.items()]):
+        for old, new in renaming_mapping.items():
+            os.rename(old, new.get("name"))
+    else:
+        print(f"Couldn't rename one of the episodes in S{season_number}, is there a double episode?")
+        if get_user_decision(values=["No", "Yes"]) == "Yes":
+            season_episodes: List[Dict[str, Any]] = episodes["seasons"][season_number - 1]["episodes"]
+            print("Which one is the duplicate episode?")
+            duplicate_title: Dict[str, Any] = get_user_decision(values=season_episodes)
+            if not duplicate_title:
+                print("Aborting due to missing input")
+                raise ValueError("No information about a duplicate title was supplied")
+
+            try:
+                index, episode = [(index, episode) for index, episode in enumerate(season_episodes)
+                                  if episode.get("title") == duplicate_title.get("title")][0]
+                season_episodes.insert(index + 1, episode.copy())
+                for episode in season_episodes[index + 1:]:
+                    episode["episode"] = episode.get("episode") + 1
+
+                episodes["seasons"][season_number - 1]["episodes"] = season_episodes
+                return rename(root_path=root_path, episodes=episodes, show_name=show_name, file_ext=file_ext,
+                              confirm_renaming=confirm_renaming, manual_season=manual_season)
+            except IndexError:
+                # This shouldn't happen, since we pick the duplicate from the existing episode list
+                print("Couldn't find that episode in season")
 
 
 def get_episodes_in_directory(path: str, file_ext: str) -> List[str]:
