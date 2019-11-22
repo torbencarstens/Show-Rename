@@ -158,10 +158,10 @@ def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: s
         print("Do you want to rename the previous episodes in {}:".format(root_path))
         if get_user_decision(values=['Yes', 'No']) == 'No':
             return None
-    else:
-        print("Renaming episodes")
-        for old, new in renaming_mapping.items():
-            os.rename(old, new)
+
+    print("Renaming episodes")
+    for old, new in renaming_mapping.items():
+        os.rename(old, new)
 
 
 def get_episodes_in_directory(path: str, file_ext: str) -> List[str]:
