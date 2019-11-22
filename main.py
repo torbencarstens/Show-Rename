@@ -30,4 +30,7 @@ if __name__ == "__main__":
     if not directory:
         directory = "."
 
-    main(directory, show_name, file_ext=file_ext, strict=strict, rename_to=rename_to, season=season)
+    if not show_name:
+        print("Please enter a show name")
+    else:
+        main(directory, show_name, file_ext=file_ext, strict=strict, rename_to=rename_to, season=season)
