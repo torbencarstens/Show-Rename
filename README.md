@@ -33,7 +33,7 @@ python main.py --name "My Cool Show" --directory /mnt/shows/fuckingamazinglocati
 
 ```
 Usage:
-        reshow.py [options]
+    main.py [options]
    
     Options:
         --name=<name>
