@@ -64,6 +64,15 @@ def retrieve_season_episode_from_file(filename: str) -> Tuple[int, int]:
     return int(season_nr), int(episode_nr)
 
 
+def retrieve_season_from_path(path: str) -> Optional[int]:
+    season_nr = re.findall(r"(?i)S(:?eason|taffel)?\s*(\d+)", path)
+
+    if season_nr and season_nr[0] and season_nr[0][1].isnumeric():
+        return int(season_nr[0][1])
+    else:
+        return None
+
+
 def retrieve_episode_from_file(filename: str) -> int:
     episode_nr = re.findall(r"(?i)E(:?p(?:isode)?)?\s*(\d+)", filename)[0][1]
 
@@ -250,9 +259,15 @@ def main(directory: str, show_name: str, file_ext: str, strict: bool = False, ye
 
     print("Creating new episode names for {} files".format(file_ext))
     for root, directories, _ in os.walk(directory):
+        if not season:
+            season = retrieve_season_from_path(directory)
+
         rename(directory, episodes, rename_to, file_ext, confirm_renaming, season)
         write_imdb_file(os.path.join(root, ".imdb_id"), imdb_id)
         for directory in directories:
-            write_imdb_file(os.path.join(root, directory, ".imdb_id"), imdb_id)
+            if not season:
+                season = retrieve_season_from_path(directory)
+
             directory = os.path.join(root, directory)
-            rename(directory, episodes, rename_to, file_ext, confirm_renaming)
+            rename(directory, episodes, rename_to, file_ext, confirm_renaming, season)
+            season = None
