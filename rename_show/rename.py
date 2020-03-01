@@ -135,7 +135,7 @@ def get_episode_title(episodes: Dict[str, Any], season_number: int, episode_numb
         raise ValueError(f"Invalid season number ({season_number}), there are only {len(episodes['seasons'])} seasons")
 
     # IMDB ocassionally starts episode numbers at `0`
-    if episodes[0]["episode"] == 0:
+    if episodes[0]["episode"] == 0 and episode_number > 0:
         episode_number -= 1
 
     try:
