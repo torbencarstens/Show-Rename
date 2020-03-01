@@ -260,14 +260,22 @@ def main(directory: str, show_name: str, file_ext: str, strict: bool = False, ye
 
     print("Creating new episode names for {} files".format(file_ext))
     for root, directories, _ in os.walk(directory):
+        write_imdb_file(os.path.join(root, directory, ".imdb_id"), imdb_id)
         if not season:
             season = retrieve_season_from_path(directory)
 
         rename(directory, episodes, rename_to, file_ext, confirm_renaming, season)
-        write_imdb_file(os.path.join(root, ".imdb_id"), imdb_id)
+
+        imdb_file_location = os.path.join(root, directory, ".imdb_id")
+        if not os.path.exists(imdb_file_location):
+            write_imdb_file(imdb_file_location, imdb_id)
         for directory in directories:
             if not season:
                 season = retrieve_season_from_path(directory)
+
+            imdb_file_location = os.path.join(root, directory, ".imdb_id")
+            if not os.path.exists(imdb_file_location):
+                write_imdb_file(imdb_file_location, imdb_id)
 
             directory = os.path.join(root, directory)
             rename(directory, episodes, rename_to, file_ext, confirm_renaming, season)
