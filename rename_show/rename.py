@@ -163,6 +163,7 @@ def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: s
                 season_number, episode_nr = retrieve_season_episode_from_file(basename)
         except IndexError:
             print(f"Couldn't retrieve season/episode from {basename}")
+            renaming_mapping[file]["success"] = False
             continue
 
         try:
