@@ -42,7 +42,7 @@ def get_show(show_name: str, year: int, strict: bool) -> Dict[str, Any]:
                               'plot_outline': show.get("plot", {}).get("outline", ""),
                               'imdb_id': show["base"]["id"].replace("/title/", "").rstrip("/")}, results))
         print(
-            f"Multiple shows with <[name] {show_name} | [year] {year}> have been found. Please choose one from the following list: ")
+            f"Multiple shows with <{show_name} | {year}> have been found. Please choose one from the following list: ")
         return get_user_decision(values=shows)
 
     raise ValueError("Show with <[name] {} | [year] {}> does not exist".format(show_name, year))
@@ -65,10 +65,10 @@ def retrieve_season_episode_from_file(filename: str) -> Tuple[int, int]:
 
 
 def retrieve_season_from_path(path: str) -> Optional[int]:
-    season_nr = re.findall(r"(?i)S(:?eason|taffel)?\s*(\d+)", path)
+    season_nr = re.findall(r"(?i)S(:?eason|taffel)?(:?\s*|[_-])(\d+)", path)
 
-    if season_nr and season_nr[0] and season_nr[0][1].isnumeric():
-        return int(season_nr[0][1])
+    if season_nr and season_nr[0] and season_nr[0][2].isnumeric():
+        return int(season_nr[0][2])
     else:
         return None
 
@@ -80,9 +80,9 @@ def retrieve_episode_from_file(filename: str) -> int:
 
 
 def get_user_decision(*, values, numbered: bool = False, type_cast_f: Optional[Callable] = None,
-                      allow_custom: bool = False):
+                      allow_custom: bool = False, message: str = ""):
     if not numbered:
-        numbered = range(0, len(values))
+        numbered = range(1, len(values) + 1)
         type_cast_f = int
 
     if len(values) == 1:
@@ -91,14 +91,17 @@ def get_user_decision(*, values, numbered: bool = False, type_cast_f: Optional[C
     custom_number = numbered[len(numbered) - 1] + 1
     if not values:
         raise ValueError("Can't let user decide on an empty list")
+
+    message = message if message else "Please enter your choice"
+    print(message)
     for idx, value in enumerate(values):
         print("{}: {}".format(numbered[idx], value))
     if allow_custom:
         print("\n{}: Custom (User input)".format(custom_number))
 
     try:
-        choice = type_cast_f(input("Please enter your choice?\n"))
-    except TypeError:
+        choice = type_cast_f(input("> "))
+    except (ValueError, TypeError):
         print("Please enter a valid option")
         return get_user_decision(values=values, numbered=numbered, type_cast_f=type_cast_f, allow_custom=allow_custom)
 
@@ -109,7 +112,7 @@ def get_user_decision(*, values, numbered: bool = False, type_cast_f: Optional[C
     if allow_custom and choice == custom_number:
         return input("Please put the new episode name:\n")
     else:
-        return values[choice]
+        return values[choice - 1]
 
 
 def sanitize(name: str) -> str:
@@ -117,7 +120,7 @@ def sanitize(name: str) -> str:
 
     # Sanitize ASCII Characters
     for i in chain(range(0, 47), range(158, 158), range(59, 64), range(91, 96), range(123, 127)):
-        name = name.replace("{:02d}".format(i), "_")
+        name = name.replace("{}".format(chr(i)), "_")
 
     for bad_char in bad_chars:
         name = name.replace(bad_char, "_")
@@ -128,15 +131,11 @@ def sanitize(name: str) -> str:
     return name.rstrip(".").rstrip(" ")
 
 
-def get_episode_title(episodes: Dict[str, Any], season_number: int, episode_number: int) -> str:
-    try:
-        episodes = episodes["seasons"][season_number - 1]["episodes"]
-    except (IndexError, KeyError):
-        raise ValueError(f"Invalid season number ({season_number}), there are only {len(episodes['seasons'])} seasons")
-
+def get_episode_title(episodes: List[Dict[str, Any]], season_number: int, episode_number: int, has_zero_episode: bool,
+                      skip_first: bool) -> str:
     # IMDB ocassionally starts episode numbers at `0`
-    if episodes[0]["episode"] == 0 and episode_number > 0:
-        episode_number -= 1
+    if episodes[0]["episode"] == 0 and not has_zero_episode and not skip_first:
+        episode_number -= 1  # TODO: make it possible to skip the zeroest episode
 
     try:
         episode = [episode for episode in episodes if episode.get("episode", -1) == episode_number][0]
@@ -147,11 +146,19 @@ def get_episode_title(episodes: Dict[str, Any], season_number: int, episode_numb
 
 
 def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: str, confirm_renaming: bool = False,
-           manual_season: int = None) -> None:
+           manual_season: int = None, skip_first: bool = False) -> None:
     renaming_mapping: Dict[str, Dict[str, Union[bool, str]]] = defaultdict(dict)
 
     season_number = 0
-    for file in get_episodes_in_directory(root_path, file_ext):
+
+    episode_files = get_episodes_in_directory(root_path, file_ext)
+    episode_files = sorted(episode_files)
+    has_zero_episode = len(list(filter(
+        lambda episode_number: episode_number == 0,
+        [retrieve_episode_from_file(file) for file in episode_files]
+    ))) > 0
+
+    for file in episode_files:
         renaming_mapping[file]["success"] = True
 
         basename = os.path.basename(file)
@@ -167,8 +174,16 @@ def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: s
             continue
 
         try:
-            title = get_episode_title(episodes, season_number, episode_nr)
+            season_episodes = episodes["seasons"][season_number - 1]["episodes"]
+        except (IndexError, KeyError, TypeError):
+            print(f"Invalid season number ({season_number}), there are only {len(episodes['seasons'])} seasons")
+            renaming_mapping[file]["success"] = False
+            break
+
+        try:
+            title = get_episode_title(season_episodes, season_number, episode_nr, has_zero_episode, skip_first)
         except ValueError:
+            print(f"couldn't retrieve episode title for S{season_number}E{episode_nr}")
             renaming_mapping[file]["success"] = False
             break
 
@@ -178,14 +193,22 @@ def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: s
         new = os.path.join(root_path, new_name)
         renaming_mapping[file]["name"] = new
 
-    if confirm_renaming:
-        print("Do you want to rename the previous episodes in {}:".format(root_path))
-        if get_user_decision(values=["No", "Yes"]) == 'No':
-            return None
-
     if all([result["success"] for _, result in renaming_mapping.items()]):
+        print(f"directory: {root_path}")
         for old, new in renaming_mapping.items():
-            os.rename(old, new.get("name"))
+            new_name = os.path.basename(new.get("name"))
+            old = os.path.basename(old)
+            print("Do you want to rename {} to {}".format(old, new_name))
+
+        rename_episode = True
+        if confirm_renaming:
+            if get_user_decision(values=["Yes", "No"]) == 'No':
+                rename_episode = False
+
+        if rename_episode:
+            for old, new in renaming_mapping.items():
+                new_name = new.get("name")
+                os.rename(old, new_name)
     else:
         print(f"Couldn't rename one of the episodes in S{season_number}, is there a double episode?")
         if get_user_decision(values=["No", "Yes"]) == "Yes":
@@ -242,7 +265,7 @@ def get_imdb_id(directory: str) -> Optional[str]:
 
 
 def main(directory: str, show_name: str, file_ext: str, strict: bool = False, year: int = None,
-         confirm_renaming: bool = False, rename_to: str = None, season: str = None):
+         confirm_renaming: bool = False, rename_to: str = None, season: str = None, skip_first: bool = False):
     global imdb
 
     if rename_to is None:
@@ -264,7 +287,7 @@ def main(directory: str, show_name: str, file_ext: str, strict: bool = False, ye
         if not season:
             season = retrieve_season_from_path(directory)
 
-        rename(directory, episodes, rename_to, file_ext, confirm_renaming, season)
+        rename(directory, episodes, rename_to, file_ext, confirm_renaming, season, skip_first)
 
         imdb_file_location = os.path.join(root, directory, ".imdb_id")
         if not os.path.exists(imdb_file_location):
@@ -278,5 +301,5 @@ def main(directory: str, show_name: str, file_ext: str, strict: bool = False, ye
                 write_imdb_file(imdb_file_location, imdb_id)
 
             directory = os.path.join(root, directory)
-            rename(directory, episodes, rename_to, file_ext, confirm_renaming, season)
+            rename(directory, episodes, rename_to, file_ext, confirm_renaming, season, skip_first)
             season = None

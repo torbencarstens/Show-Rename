@@ -9,19 +9,24 @@ Options:
     --strict
     --rename-to=<rename-to>
     --season=<season>
+    --confirm
+    --skip-first-episode
 """
+import os
 
 from docopt import docopt
 
 from rename_show.rename import main
 
-# from rename_show.rename import main
 
-if __name__ == "__main__":
+# noinspection PyShadowingNames
+def validate_options():
     args = docopt(__doc__)
     directory, show_name, file_ext = args["--directory"], args["--name"], args["--file-ext"]
     rename_to = args['--rename-to']
     season = args['--season']
+    skip_first = args['--skip-first-episode'] or False
+    confirm_renaming = args['--confirm'] or False
     strict = 'strict' in args.keys()
     if not file_ext:
         file_ext = "mkv"
@@ -30,8 +35,18 @@ if __name__ == "__main__":
 
     if not directory:
         directory = "."
+    else:
+        if not os.path.exists(directory):
+            raise ValueError("directory does not exist")
 
     if not show_name:
-        print("Please enter a show name")
-    else:
-        main(directory, show_name, file_ext=file_ext, strict=strict, rename_to=rename_to, season=season)
+        raise ValueError("No show_name has been provided")
+
+    return directory, show_name, file_ext, strict, rename_to, season, confirm_renaming, skip_first
+
+
+if __name__ == "__main__":
+    directory, show_name, file_ext, strict, rename_to, season, confirm_renaming, skip_first = validate_options()
+
+    main(directory, show_name, file_ext=file_ext, strict=strict, rename_to=rename_to, season=season,
+         confirm_renaming=confirm_renaming, skip_first=skip_first)
