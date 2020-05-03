@@ -199,14 +199,13 @@ def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: s
             new_name = os.path.basename(new.get("name"))
             old = os.path.basename(old)
 
-        rename_episode = True
-        if confirm_renaming:
-            print("Do you want to rename {} to {}".format(old, new_name))
-            if get_user_decision(values=["Yes", "No"]) == 'No':
-                rename_episode = False
+            rename_episode = True
+            if confirm_renaming:
+                print("Do you want to rename {} to {}".format(old, new_name))
+                if get_user_decision(values=["Yes", "No"]) == 'No':
+                    rename_episode = False
 
-        if rename_episode:
-            for old, new in renaming_mapping.items():
+            if rename_episode:
                 new_name = new.get("name")
                 os.rename(old, new_name)
     else:
