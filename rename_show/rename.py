@@ -146,8 +146,8 @@ def get_episode_title(episodes: List[Dict[str, Any]], season_number: int, episod
 
 
 def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: str, confirm_renaming: bool = False,
-           manual_season: int = None, skip_first: bool = False) -> None:
-    renaming_mapping: Dict[str, Dict[str, Union[bool, str]]] = defaultdict(dict)
+           manual_season: int = None, skip_first: bool = False, custom_format: str = None) -> None:
+    renaming_mapping: Dict[str, Dict[str, Union[bool, str, int]]] = defaultdict(dict)
 
     season_number = 0
 
@@ -187,7 +187,10 @@ def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: s
             renaming_mapping[file]["success"] = False
             break
 
-        new_name = "_".join([i for i in [show_name, f"S{season_number:02d}", f"E{episode_nr:02d}", title] if i])
+        default_format = "{show_name}_S{season_number:02d}_E{episode_number:02d}_{title}"
+        formatting = default_format if not custom_format else custom_format
+        new_name = formatting.format(show_name=show_name, season_number=season_number, episode_number=episode_nr,
+                                     title=title)
         new_name = ".".join([new_name, file_ext])
 
         new = os.path.join(root_path, new_name)
@@ -210,14 +213,13 @@ def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: s
                 os.rename(old, new_name)
     else:
         print(f"Couldn't rename one of the episodes in S{season_number}, is there a double episode?")
-        if get_user_decision(values=["No", "Yes"]) == "Yes":
+        if get_user_decision(values=["Yes", "No"]) == "Yes":
             season_episodes: List[Dict[str, Any]] = episodes["seasons"][season_number - 1]["episodes"]
             print("Which one is the duplicate episode?")
             duplicate_title: Dict[str, Any] = get_user_decision(values=season_episodes)
             if not duplicate_title:
                 print("Aborting due to missing input")
                 raise ValueError("No information about a duplicate title was supplied")
-
             try:
                 index, episode = [(index, episode) for index, episode in enumerate(season_episodes)
                                   if episode.get("title") == duplicate_title.get("title")][0]
@@ -227,7 +229,8 @@ def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: s
 
                 episodes["seasons"][season_number - 1]["episodes"] = season_episodes
                 return rename(root_path=root_path, episodes=episodes, show_name=show_name, file_ext=file_ext,
-                              confirm_renaming=confirm_renaming, manual_season=manual_season)
+                              confirm_renaming=confirm_renaming, manual_season=manual_season,
+                              custom_format=custom_format)
             except IndexError:
                 # This shouldn't happen, since we pick the duplicate from the existing episode list
                 print("Couldn't find that episode in season")
@@ -264,7 +267,8 @@ def get_imdb_id(directory: str) -> Optional[str]:
 
 
 def main(directory: str, show_name: str, file_ext: str, strict: bool = False, year: int = None,
-         confirm_renaming: bool = False, rename_to: str = None, season: str = None, skip_first: bool = False):
+         confirm_renaming: bool = False, rename_to: str = None, season: str = None, skip_first: bool = False,
+         custom_format: str = None):
     global imdb
 
     if rename_to is None:
@@ -286,7 +290,8 @@ def main(directory: str, show_name: str, file_ext: str, strict: bool = False, ye
         if not season:
             season = retrieve_season_from_path(directory)
 
-        rename(directory, episodes, rename_to, file_ext, confirm_renaming, season, skip_first)
+        rename(directory, episodes, rename_to, file_ext, confirm_renaming, season, skip_first,
+               custom_format=custom_format)
 
         imdb_file_location = os.path.join(root, directory, ".imdb_id")
         if not os.path.exists(imdb_file_location):
@@ -300,5 +305,6 @@ def main(directory: str, show_name: str, file_ext: str, strict: bool = False, ye
                 write_imdb_file(imdb_file_location, imdb_id)
 
             directory = os.path.join(root, directory)
-            rename(directory, episodes, rename_to, file_ext, confirm_renaming, season, skip_first)
+            rename(directory, episodes, rename_to, file_ext, confirm_renaming, season, skip_first,
+                   custom_format=custom_format)
             season = None
