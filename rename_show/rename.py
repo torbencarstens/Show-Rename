@@ -210,7 +210,8 @@ def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: s
 
             if rename_episode:
                 new_name = new.get("name")
-                os.rename(old, new_name)
+                old_path = os.path.join(root_path, os.path.basename(old))
+                os.rename(old_path, new_name)
     else:
         print(f"Couldn't rename one of the episodes in S{season_number}, is there a double episode?")
         if get_user_decision(values=["Yes", "No"]) == "Yes":
