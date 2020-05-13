@@ -7,6 +7,8 @@ from typing import Any, Dict, Tuple, Callable, Optional, List, Union
 
 from imdbpie import Imdb
 
+from rename_show import mkvpropedit
+
 imdb: Imdb = None
 
 
@@ -131,8 +133,8 @@ def sanitize(name: str) -> str:
     return name.rstrip(".").rstrip(" ")
 
 
-def get_episode_title(episodes: List[Dict[str, Any]], season_number: int, episode_number: int, has_zero_episode: bool,
-                      skip_first: bool) -> str:
+def get_episode(episodes: List[Dict[str, Any]], season_number: int, episode_number: int, has_zero_episode: bool,
+                skip_first: bool) -> Dict[str, any]:
     # IMDB ocassionally starts episode numbers at `0`
     if episodes[0]["episode"] == 0 and not has_zero_episode and not skip_first:
         episode_number -= 1  # TODO: make it possible to skip the zeroest episode
@@ -142,7 +144,7 @@ def get_episode_title(episodes: List[Dict[str, Any]], season_number: int, episod
     except IndexError:
         raise ValueError(f"Couldn't find episode name for S{season_number}E{episode_number}")
 
-    return sanitize(episode["title"])
+    return episode
 
 
 def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: str, confirm_renaming: bool = False,
@@ -181,7 +183,11 @@ def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: s
             break
 
         try:
-            title = get_episode_title(season_episodes, season_number, episode_nr, has_zero_episode, skip_first)
+            episode = get_episode(season_episodes, season_number, episode_nr, has_zero_episode, skip_first)
+            raw_title = episode["title"]
+            title = sanitize(raw_title)
+            renaming_mapping[file]["title"] = raw_title
+            # renaming_mapping[file]["year"] = episode.get("year")
         except ValueError:
             print(f"couldn't retrieve episode title for S{season_number}E{episode_nr}")
             renaming_mapping[file]["success"] = False
@@ -212,6 +218,9 @@ def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: s
                 new_name = new.get("name")
                 old_path = os.path.join(root_path, os.path.basename(old))
                 os.rename(old_path, new_name)
+                if new_name.endswith(".mkv"):
+                    if not mkvpropedit.set_title(new_name, new.get("title", "")):
+                        print(f"mkv metadata for {new_name} couldn't be updated")
     else:
         print(f"Couldn't rename one of the episodes in S{season_number}, is there a double episode?")
         if get_user_decision(values=["Yes", "No"]) == "Yes":
