@@ -76,7 +76,11 @@ def retrieve_season_from_path(path: str) -> Optional[int]:
 
 
 def retrieve_episode_from_file(filename: str) -> int:
-    episode_nr = re.findall(r"(?i)E(:?p(?:isode)?)?\s*(\d+)", filename)[0][1]
+    try:
+        episode_nr = re.findall(r"E(:?p(?:isode)?)?\s*(\d+)", filename, re.IGNORECASE)[0][1]
+    except IndexError:
+        basename = os.path.basename(filename)
+        episode_nr = re.findall(r"S(:?eason)?\s*\d+.*?(\d+)", basename, re.IGNORECASE)[0][1]
 
     return int(episode_nr)
 
