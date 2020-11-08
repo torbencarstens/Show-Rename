@@ -154,6 +154,8 @@ def get_episode(episodes: List[Dict[str, Any]], season_number: int, episode_numb
 def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: str, confirm_renaming: bool = False,
            manual_season: int = None, skip_first: bool = False, custom_format: str = None) -> None:
     renaming_mapping: Dict[str, Dict[str, Union[bool, str, int]]] = defaultdict(dict)
+    if ".@__thumb" in root_path:  # plex autogenerates this and keeps the .mkv ending
+        return
 
     season_number = 0
 
