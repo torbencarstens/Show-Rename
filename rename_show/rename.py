@@ -61,7 +61,7 @@ def retrieve_season_episode_from_file(filename: str) -> Tuple[int, int]:
     try:
         season_nr, episode_nr = re.findall(r"(?i).*?S(\d+).*?E(\d+).*", filename)[0]
     except IndexError:
-        season_nr, episode_nr = re.findall("(?i).*?(\d+)x(\d+).*?", filename)[0]
+        season_nr, episode_nr = re.findall(r"(?i).*?(\d+)x(\d+).*?", filename)[0]
 
     return int(season_nr), int(episode_nr)
 
