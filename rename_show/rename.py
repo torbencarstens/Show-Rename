@@ -131,9 +131,9 @@ def sanitize(name: str) -> str:
     for bad_char in bad_chars:
         name = name.replace(bad_char, "_")
 
+    name = re.sub("_+", r"_", name)
     # Windows doesn't allow dots (.) or spaces ( ) at the end of a file
 
-    name = re.sub("_+", r"_", name)
     return name.rstrip(".").rstrip(" ")
 
 
