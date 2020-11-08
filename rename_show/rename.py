@@ -166,6 +166,10 @@ def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: s
         [retrieve_episode_from_file(file) for file in episode_files]
     ))) > 0
 
+    if not episode_files:
+        print(f"No episodes have been found in {root_path}")
+        return
+
     for file in episode_files:
         renaming_mapping[file]["success"] = True
 
