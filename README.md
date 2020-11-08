@@ -54,3 +54,7 @@ Possible keys: `show_name`, `season_number`, `episode_number`, `title`:
 {show_name}_S{season_number:02d}_E{episode_number:02d}_{title} # default
 S{season_number:02d}_E{episode_number:02d}_{title}
 ```
+
+#### Using an .imdb_id
+
+Create a file `.imdb_id` in the directory and write the imdb id into it.
