@@ -42,4 +42,15 @@ Usage:
         --strict
         --rename-to=<rename-to>
         --season=<season>
+        --skip-first-episode
+        --confirm
+        --custom_format=<custom_format>
+```
+
+#### Examples for custom fomrat
+
+Possible keys: `show_name`, `season_number`, `episode_number`, `title`:
+```
+{show_name}_S{season_number:02d}_E{episode_number:02d}_{title} # default
+S{season_number:02d}_E{episode_number:02d}_{title}
 ```
