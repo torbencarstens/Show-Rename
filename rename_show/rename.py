@@ -286,6 +286,23 @@ def get_imdb_id(directory: str) -> Optional[str]:
     return None
 
 
+def is_season_directory(directory: str) -> bool:
+    directory = directory.lower()
+    return bool(re.match(r".*S(eason)?.*?\d+.*", directory)) or bool(re.match(r".*Specials.*", directory))
+
+
+def has_ignore_file(path: str) -> bool:
+    name = ".imdbignore"
+
+    if os.path.exists(os.path.join(path, name)):
+        return True
+
+    if is_season_directory(os.path.basename(path)):
+        return has_ignore_file(os.path.dirname(path))
+
+    return False
+
+
 def main(directory: str, show_name: str, file_ext: str, strict: bool = False, year: int = None,
          confirm_renaming: bool = False, rename_to: str = None, season: str = None, skip_first: bool = False,
          custom_format: str = None):
@@ -310,6 +327,10 @@ def main(directory: str, show_name: str, file_ext: str, strict: bool = False, ye
         if not season:
             season = retrieve_season_from_path(directory)
 
+        if has_ignore_file(directory):
+            print(f"Ignoring {directory} due to an existing .imdbignore file.")
+            break
+
         rename(directory, episodes, rename_to, file_ext, confirm_renaming, season, skip_first,
                custom_format=custom_format)
 
@@ -317,6 +338,10 @@ def main(directory: str, show_name: str, file_ext: str, strict: bool = False, ye
         if not os.path.exists(imdb_file_location):
             write_imdb_file(imdb_file_location, imdb_id)
         for directory in directories:
+            if has_ignore_file(os.path.join(root, directory)):
+                print(f"Ignoring {directory} due to an existing .imdbignore file.")
+                continue
+
             if not season:
                 season = retrieve_season_from_path(directory)
 
