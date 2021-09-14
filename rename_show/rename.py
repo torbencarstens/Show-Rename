@@ -229,8 +229,11 @@ def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: s
                 old_path = os.path.join(root_path, os.path.basename(old))
                 os.rename(old_path, new_name)
                 if new_name.endswith(".mkv"):
-                    if not mkvpropedit.set_title(new_name, new.get("title", "")):
-                        print(f"mkv metadata for {new_name} couldn't be updated")
+                    try:
+                        if not mkvpropedit.set_title(new_name, new.get("title", "")):
+                            print(f"mkv metadata for {new_name} couldn't be updated")
+                    except FileNotFoundError:
+                        print("mkvprodedit is not installed, not setting mkv metadata.")
     else:
         print(f"Couldn't rename one of the episodes in S{season_number}, is there a double episode?")
         if get_user_decision(values=["Yes", "No"]) == "Yes":
