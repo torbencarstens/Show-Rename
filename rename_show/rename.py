@@ -36,11 +36,11 @@ def get_show(show_name: str, year: int, strict: bool) -> Dict[str, Any]:
     if len(results) == 1:
         show = results[0]
         imdb_id = show["base"]["id"].replace("/title/", "").strip("/")
-        return {'title': show["base"]["title"], 'year': show["base"]["year"],
+        return {'title': show["base"]["title"], 'year': show["base"].get("year"),
                 'plot_outline': show.get("plot", {}).get("outline", ""), 'imdb_id': imdb_id}
     elif len(results) > 1:
         shows = list(
-            map(lambda show: {'title': show["base"]["title"], 'year': show["base"]["year"],
+            map(lambda show: {'title': show["base"]["title"], 'year': show["base"].get("year"),
                               'plot_outline': show.get("plot", {}).get("outline", ""),
                               'imdb_id': show["base"]["id"].replace("/title/", "").rstrip("/")}, results))
         print(
