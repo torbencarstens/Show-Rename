@@ -162,7 +162,7 @@ def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: s
     has_zero_episode = next(filter(
         lambda episode_number: episode_number == 0,
         (retrieve_episode_from_file(file) for file in episode_files)
-    ), None)
+    ), None) is not None
 
     if not episode_files:
         print(f"No episodes have been found in {root_path}")
