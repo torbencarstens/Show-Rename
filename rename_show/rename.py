@@ -141,7 +141,7 @@ def get_episode(episodes: List[Dict[str, Any]], season_number: int, episode_numb
                 skip_first: bool) -> Dict[str, any]:
     # IMDB ocassionally starts episode numbers at `0`
     if episodes[0]["episode"] == 0 and not has_zero_episode and not skip_first:
-        episode_number -= 1  # TODO: make it possible to skip the zeroest episode
+        episode_number -= 1
 
     try:
         episode = [episode for episode in episodes if episode.get("episode", -1) == episode_number][0]
