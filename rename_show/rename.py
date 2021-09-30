@@ -233,6 +233,7 @@ def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: s
                     except FileNotFoundError:
                         print("mkvprodedit is not installed, not setting mkv metadata.")
     else:
+        # noinspection PyUnboundLocalVariable
         print(f"Couldn't rename one of the episodes in S{season_number}, is there a double episode?")
         if get_user_decision(values=["Yes", "No"]) == "Yes":
             season_episodes: List[Dict[str, Any]] = episodes["seasons"][season_number - 1]["episodes"]
