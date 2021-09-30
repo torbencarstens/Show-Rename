@@ -267,6 +267,8 @@ def write_imdb_file(filename: str, imdb_id: str):
         imdb_file.write(imdb_id)
 
     if os.name == "nt":
+        # set hidden attribute on windows
+        # see here: https://docs.microsoft.com/en-us/cpp/c-runtime-library/file-attribute-constants?view=msvc-160
         ctypes.windll.kernel32.SetFileAttributesW(filename, 0x02)
 
 
