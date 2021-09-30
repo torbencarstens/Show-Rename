@@ -14,6 +14,7 @@ Options:
     --custom-format=<custom-format>
 """
 import os
+import sys
 
 from docopt import docopt
 
@@ -50,5 +51,8 @@ def validate_options():
 if __name__ == "__main__":
     directory, show_name, file_ext, strict, rename_to, season, confirm_renaming, skip_first, custom_format = validate_options()
 
-    main(directory, show_name, file_ext=file_ext, strict=strict, rename_to=rename_to, season=season,
-         confirm_renaming=confirm_renaming, skip_first=skip_first, custom_format=custom_format)
+    try:
+        main(directory, show_name, file_ext=file_ext, strict=strict, rename_to=rename_to, season=season,
+             confirm_renaming=confirm_renaming, skip_first=skip_first, custom_format=custom_format)
+    except ValueError as e:
+        print(f"An error has occured: {e}", file=sys.stderr)
