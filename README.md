@@ -58,3 +58,7 @@ S{season_number:02d}_E{episode_number:02d}_{title}
 #### Using an .imdb_id
 
 Create a file `.imdb_id` in the directory and write the imdb id into it.
+
+#### Ignoring a directory
+
+Placing an `.imdbignore` file into a directory will result in the directory and all its subdirectories being ignored.
