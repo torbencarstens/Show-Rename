@@ -159,10 +159,10 @@ def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: s
 
     episode_files = get_episodes_in_directory(root_path, file_ext)
     episode_files = sorted(episode_files)
-    has_zero_episode = len(list(filter(
+    has_zero_episode = next(filter(
         lambda episode_number: episode_number == 0,
-        [retrieve_episode_from_file(file) for file in episode_files]
-    ))) > 0
+        (retrieve_episode_from_file(file) for file in episode_files)
+    ), None)
 
     if not episode_files:
         print(f"No episodes have been found in {root_path}")
