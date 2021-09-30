@@ -157,8 +157,6 @@ def rename(root_path: str, episodes: Dict[str, Any], show_name: str, file_ext: s
     if ".@__thumb" in root_path:  # plex autogenerates this and keeps the .mkv ending
         return
 
-    season_number = 0
-
     episode_files = get_episodes_in_directory(root_path, file_ext)
     episode_files = sorted(episode_files)
     has_zero_episode = len(list(filter(
