@@ -25,13 +25,14 @@ from rename_show.rename import main
 def validate_options():
     args = docopt(__doc__)
     directory = args["--directory"] or "."
-    show_name, file_ext = args["--name"], args["--file-ext"]
+    show_name = args["--name"]
+    file_ext = args["--file-ext"] or "mkv"
     rename_to = args['--rename-to']
     season = args['--season']
     skip_first = args['--skip-first-episode'] or False
     confirm_renaming = args['--confirm'] or False
     strict = 'strict' in args.keys()
-    custom_format = args['--custom-format'] or "mkv"
+    custom_format = args['--custom-format']
     if file_ext.startswith("."):
         file_ext = file_ext[1:]
 
